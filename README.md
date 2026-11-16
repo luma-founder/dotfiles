@@ -37,7 +37,7 @@ Optionally use a [package manager](https://www.chezmoi.io/install) **(recommende
 
 Apply dotfiles and run applicable ansible playbooks.
 ```bash
-export GITHUB_USERNAME=benlinton
+export GITHUB_USERNAME=changeme
 sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply $GITHUB_USERNAME
 ```
 > For macOS, installs `brew` if missing. For Windows, installs `winget`.
