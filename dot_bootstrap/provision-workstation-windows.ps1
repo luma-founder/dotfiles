@@ -34,6 +34,9 @@ function Install-App {
 
 Install-App 'Microsoft.VisualStudioCode' 'Visual Studio Code'
 Install-App '7zip.7zip' '7-Zip' -Silent
+# Claude desktop app (includes the Code tab). The Claude Code CLI is
+# installed inside WSL by provision-workstation-wsl.yml, not here.
+Install-App 'Anthropic.Claude' 'Claude'
 
 # ----------------------------------------------------------------------------
 # Install fonts
