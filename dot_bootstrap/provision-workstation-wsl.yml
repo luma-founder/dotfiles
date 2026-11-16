@@ -35,14 +35,51 @@
       become: true
       ansible.builtin.apt:
         name:
+          - fontconfig
           - git
           - gh
           - htop
+          # kitty has no Windows build; it runs from WSL as a normal Windows
+          # window via WSLg (Windows 11) and gets a Start menu entry.
+          - kitty
           - tmux
           - vim
           - unzip
         state: present
         update_cache: true
+
+    # ------------------------------------------------------------------------
+    # Install fonts
+    # ------------------------------------------------------------------------
+    # kitty runs inside WSL, so it needs the font in Linux; the Windows-side
+    # install in provision-workstation-windows.ps1 is not visible to it.
+
+    - name: Ensure fonts directory
+      ansible.builtin.file:
+        path: "{{ ansible_facts['env']['HOME'] }}/.fonts"
+        state: directory
+        mode: "0755"
+
+    # find (not `ls` + ignore_errors) so a missing font is a normal result,
+    # not a red error on every fresh machine.
+    - name: Check if Jetbrains Mono exists
+      ansible.builtin.find:
+        paths: "{{ ansible_facts['env']['HOME'] }}/.fonts"
+        patterns: "JetBrainsMonoNerd*FontMono*"
+      register: jetbrains_mono
+
+    - name: Download Jetbrains Mono
+      when: jetbrains_mono.matched == 0
+      ansible.builtin.unarchive:
+        src: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip
+        dest: "{{ ansible_facts['env']['HOME'] }}/.fonts/"
+        remote_src: true
+        mode: "0644"
+
+    - name: Refresh font cache
+      when: jetbrains_mono.matched == 0
+      ansible.builtin.command: "fc-cache -f {{ ansible_facts['env']['HOME'] }}/.fonts"
+      changed_when: true
 
     # ------------------------------------------------------------------------
     # Install Claude Code
