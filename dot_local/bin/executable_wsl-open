@@ -21,6 +21,13 @@
 #
 # Only installed on WSL (see .chezmoiignore). Not used as $BROWSER: that stays
 # the stricter wsl-open-url, since links come from output you don't control.
+#
+# Alternative: consider https://github.com/4U6U57/wsl-open (npm package of the
+# same name; install one or the other, as both provide `wsl-open`). It also
+# handles xdg-open/.mailcap file associations. Not used here because it passes
+# input to `powershell.exe Start` (parsed as PowerShell, unsafe as $BROWSER),
+# opens executables, edits ~/.bashrc for -w (managed by chezmoi), needs Node,
+# and has had no release since 2.2.1 (2021).
 # ---------------------------------------------------------------------------
 
 me=wsl-open
