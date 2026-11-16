@@ -204,9 +204,16 @@ fi
 # ----------------------------------------------------------------------------
 # OPTIONAL: ssh-agent - requires smallstep (shell-agnostic)
 # ----------------------------------------------------------------------------
-if command -v step >/dev/null 2>&1; then
-  if ! pgrep -u "$USER" ssh-agent >/dev/null 2>&1; then
-    eval "$(ssh-agent -s)" >/dev/null
+# One agent at a fixed socket, shared by every shell. (Starting an agent only
+# when none was running left every later shell without SSH_AUTH_SOCK.)
+# An existing SSH_AUTH_SOCK (macOS launchd, a forwarded agent) is respected.
+if command -v step >/dev/null 2>&1 && [ -z "${SSH_AUTH_SOCK:-}" ]; then
+  export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"
+  # ssh-add -l exits 2 when it can't reach an agent (1 just means no keys).
+  ssh-add -l >/dev/null 2>&1
+  if [ $? -eq 2 ]; then
+    rm -f "$SSH_AUTH_SOCK"
+    eval "$(ssh-agent -a "$SSH_AUTH_SOCK" -s)" >/dev/null
   fi
 fi
 
