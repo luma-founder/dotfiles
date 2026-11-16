@@ -69,6 +69,11 @@
       ansible.builtin.apt:
         name:
           - fontconfig
+          # Fallback font for symbols JetBrains Mono Nerd Font lacks (Claude
+          # Code's ⏺ ⎿ ⏵ ✻, the kitty tab icons' ⏸). WSL ships almost no
+          # fonts, so without it kitty draws empty boxes. Monochrome, unlike
+          # Noto Color Emoji, so the symbols stay text-like.
+          - fonts-symbola
           - git
           - gh
           - htop
