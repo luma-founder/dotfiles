@@ -24,10 +24,27 @@
         dest: /usr/share/keyrings/githubcli-archive-keyring.gpg
         mode: "0644"
 
+    # apt names architectures differently from Ansible (amd64 vs x86_64,
+    # arm64 vs aarch64). With arch=x86_64 apt silently skips the repo and gh
+    # comes from Ubuntu's older package instead, so ask dpkg.
+    - name: Get Debian architecture
+      ansible.builtin.command: dpkg --print-architecture
+      register: deb_arch
+      changed_when: false
+
+    # Machines provisioned before this fix have a dead arch=x86_64 line.
+    - name: Remove GitHub CLI apt line with wrong architecture
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/apt/sources.list.d/github-cli.list
+        regexp: 'arch=(?!{{ deb_arch.stdout }}\b)'
+        state: absent
+      failed_when: false
+
     - name: Add GitHub CLI apt repository
       become: true
       ansible.builtin.apt_repository:
-        repo: "deb [arch={{ ansible_facts['architecture'] }} signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
+        repo: "deb [arch={{ deb_arch.stdout }} signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
         state: present
         filename: github-cli
 
