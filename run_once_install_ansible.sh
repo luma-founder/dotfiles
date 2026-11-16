@@ -33,7 +33,15 @@ maybe_sudo() {
 install_homebrew() {
     if ! command -v brew &>/dev/null; then
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        /bin/bash eval "$(/opt/homebrew/bin/brew shellenv)"
+        # The installer does not put brew on PATH for this already-running
+        # script, so load its environment here (in this shell, not a child —
+        # a child process cannot change our PATH). Apple Silicon installs to
+        # /opt/homebrew, Intel to /usr/local.
+        if [ -x /opt/homebrew/bin/brew ]; then
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+        elif [ -x /usr/local/bin/brew ]; then
+            eval "$(/usr/local/bin/brew shellenv)"
+        fi
     fi
 }
 
