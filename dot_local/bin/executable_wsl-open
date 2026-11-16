@@ -1,0 +1,87 @@
+#!/usr/bin/env sh
+# IMPORTANT: Managed by chezmoi - do not edit this copy directly.
+# Source: ~/.local/share/chezmoi - edit there, then run `chezmoi apply`.
+# If you edit this file directly, notify the user and reconcile with the chezmoi source.
+
+# ---------------------------------------------------------------------------
+# Open files, folders and web links in Windows, from inside WSL.
+#
+#   wsl-open report.pdf            # default Windows app for .pdf
+#   wsl-open .                     # this folder in File Explorer
+#   wsl-open ~/notes.md a.png      # several at once
+#   wsl-open https://example.com   # web links go through wsl-open-url
+#
+# Files inside Linux open via \\wsl.localhost\... paths (wslpath -w); most
+# Windows apps handle those. Files under /mnt/c open via normal C:\ paths.
+#
+# Refused on purpose:
+#   - Windows executables and scripts (.exe, .bat, .ps1, .lnk, ...): opening
+#     them would RUN them. Use explorer.exe or cmd.exe directly if you mean it.
+#   - Links other than http:// and https:// (see wsl-open-url).
+#
+# Only installed on WSL (see .chezmoiignore). Not used as $BROWSER: that stays
+# the stricter wsl-open-url, since links come from output you don't control.
+# ---------------------------------------------------------------------------
+
+me=wsl-open
+
+die() {
+  # printf, not echo: dash's echo would turn backslashes (C:\...) into escapes
+  printf '%s: %s\n' "$me" "$*" >&2
+  exit 1
+}
+
+if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+  echo "Usage: $me <file | folder | http(s)-url>..." >&2
+  [ "$#" -eq 0 ] && exit 2 || exit 0
+fi
+
+# explorer.exe is on PATH unless WSL's appendWindowsPath is turned off.
+explorer=$(command -v explorer.exe 2>/dev/null || echo /mnt/c/Windows/explorer.exe)
+[ -x "$explorer" ] || die "explorer.exe not found; is this WSL with Windows interop enabled?"
+
+status=0
+for target in "$@"; do
+  case "$target" in
+    http://*|https://*)
+      wsl-open-url "$target" || status=1
+      continue
+      ;;
+    *://*|mailto:*)
+      printf "%s: refusing to open '%s' (only http:// and https:// links)\n" "$me" "$target" >&2
+      status=2
+      continue
+      ;;
+  esac
+
+  if [ ! -e "$target" ]; then
+    printf "%s: no such file or folder: '%s'\n" "$me" "$target" >&2
+    status=1
+    continue
+  fi
+
+  # Resolve symlinks first, so a harmless-looking link to an .exe is caught.
+  path=$(realpath -- "$target") || { status=1; continue; }
+
+  if [ -f "$path" ]; then
+    ext=$(printf '%s' "${path##*.}" | tr '[:upper:]' '[:lower:]')
+    case "$ext" in
+      exe|com|scr|pif|bat|cmd|ps1|psm1|psd1|vbs|vbe|js|jse|wsf|wsh|hta|msi|msp|msc|cpl|lnk|url|reg|jar|appref-ms|application|settingcontent-ms)
+        printf "%s: refusing to open '%s': .%s files run as programs on Windows\n" "$me" "$target" "$ext" >&2
+        status=2
+        continue
+        ;;
+    esac
+  fi
+
+  winpath=$(wslpath -w "$path" 2>/dev/null) || {
+    printf "%s: could not convert '%s' to a Windows path\n" "$me" "$path" >&2
+    status=1
+    continue
+  }
+
+  # explorer.exe returns 1 even when it succeeds, so its exit code is ignored.
+  "$explorer" "$winpath" >/dev/null 2>&1
+done
+
+exit "$status"
