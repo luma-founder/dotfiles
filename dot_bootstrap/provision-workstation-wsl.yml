@@ -45,6 +45,9 @@
           - tmux
           - vim
           - unzip
+          # xdg-open, which kitty uses for links; with no Linux desktop it falls
+          # back to $BROWSER (wsl-open-url, set in dot_shellrc).
+          - xdg-utils
         state: present
         update_cache: true
 

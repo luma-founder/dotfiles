@@ -5,3 +5,8 @@ scripts/
 CLAUDE.md
 README.md
 tests/
+
+# WSL-only helpers (same WSL check as run_onchange_provision.sh.tmpl)
+{{ if not (stat "/proc/sys/fs/binfmt_misc/WSLInterop") }}
+.local/bin/wsl-open-url
+{{ end }}

@@ -1,0 +1,44 @@
+#!/usr/bin/env sh
+# IMPORTANT: Managed by chezmoi - do not edit this copy directly.
+# Source: ~/.local/share/chezmoi - edit there, then run `chezmoi apply`.
+# If you edit this file directly, notify the user and reconcile with the chezmoi source.
+
+# ---------------------------------------------------------------------------
+# Open a web link in the Windows default browser, from inside WSL.
+#
+# Linux programs in WSL (kitty, Claude Code, gh, ...) have no browser of their
+# own. dot_shellrc sets BROWSER=wsl-open-url on WSL, and xdg-open (which kitty
+# uses) falls back to $BROWSER, so links end up here and are handed to Windows.
+# Only installed on WSL (see .chezmoiignore).
+#
+# Only http:// and https:// are accepted: explorer.exe opens whatever it is
+# given, including Windows programs, so arbitrary input is refused.
+#
+# Usage:
+#   wsl-open-url https://example.com
+# ---------------------------------------------------------------------------
+
+if [ "$#" -ne 1 ]; then
+  echo "Usage: wsl-open-url <http(s)-url>" >&2
+  exit 2
+fi
+
+case "$1" in
+  http://*|https://*) ;;
+  *)
+    # printf, not echo: dash's echo would turn backslashes (C:\...) into escapes
+    printf "wsl-open-url: refusing to open '%s' (only http:// and https:// links)\n" "$1" >&2
+    exit 2
+    ;;
+esac
+
+# explorer.exe is on PATH unless WSL's appendWindowsPath is turned off.
+explorer=$(command -v explorer.exe 2>/dev/null || echo /mnt/c/Windows/explorer.exe)
+if [ ! -x "$explorer" ]; then
+  echo "wsl-open-url: explorer.exe not found; is this WSL with Windows interop enabled?" >&2
+  exit 1
+fi
+
+# explorer.exe returns 1 even when it succeeds, so its exit code is ignored.
+"$explorer" "$1" >/dev/null 2>&1
+exit 0
