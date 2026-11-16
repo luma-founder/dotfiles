@@ -48,6 +48,22 @@
         state: present
         filename: github-cli
 
+    # smallstep CLI (`step`) isn't in Ubuntu's repos; use Smallstep's own.
+    # The key is ASCII-armored, hence .asc.
+    - name: Add Smallstep apt key
+      become: true
+      ansible.builtin.get_url:
+        url: https://packages.smallstep.com/keys/apt/repo-signing-key.gpg
+        dest: /etc/apt/keyrings/smallstep.asc
+        mode: "0644"
+
+    - name: Add Smallstep apt repository
+      become: true
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/smallstep.asc] https://packages.smallstep.com/stable/debian debs main"
+        state: present
+        filename: smallstep
+
     - name: Install packages
       become: true
       ansible.builtin.apt:
@@ -56,10 +72,12 @@
           - git
           - gh
           - htop
+          - jq
           # kitty has no Windows build; it runs from WSL as a normal Windows
           # window via WSLg (Windows 11) and gets a Start menu entry.
           - kitty
           - tmux
+          - step-cli  # smallstep; installs the `step` binary
           - vim
           - unzip
           # xdg-open, which kitty uses for links; with no Linux desktop it falls
