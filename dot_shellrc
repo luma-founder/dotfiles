@@ -116,6 +116,11 @@ fi
 # ----------------------------------------------------------------------------
 # OPTIONAL: PATH (shell-agnostic)
 # ----------------------------------------------------------------------------
+# Add $HOME/bin to PATH (if exists). get.chezmoi.io installs chezmoi to
+# ./bin, which is ~/bin on a fresh bootstrap. Prepended before .local/bin so
+# that .local/bin still wins.
+test -d "$HOME/bin" && export PATH="$HOME/bin:$PATH"
+
 # Add $HOME/.local/bin to front of PATH (if exists)
 test -d "$HOME/.local/bin" && export PATH="$HOME/.local/bin:$PATH"
 
