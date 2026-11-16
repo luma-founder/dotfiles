@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Fail loudly: if any playbook or the Windows script fails, chezmoi reports the
+# error and does not record this script as run, so the next `chezmoi apply`
+# retries it instead of silently skipping provisioning.
+set -euo pipefail
+
 # bootstrap hash: {{ if eq .chezmoi.os "darwin" }}{{ include "dot_bootstrap/provision-workstation-macos.yml" | sha256sum }}{{ else if stat "/proc/sys/fs/binfmt_misc/WSLInterop" }}{{ include "dot_bootstrap/provision-workstation-wsl.yml" | sha256sum }}{{ include "dot_bootstrap/provision-workstation-windows.ps1" | sha256sum }}{{ else }}{{ include "dot_bootstrap/provision-workstation-linux.yml" | sha256sum }}{{ end }}
 
 # ----------------------------------------------------------------------------
@@ -22,16 +27,30 @@ is_macos() {
 }
 
 # ----------------------------------------------------------------------------
+# Work around sudo-rs (default sudo since Ubuntu 25.10)
+# ----------------------------------------------------------------------------
+# Ansible's become plugin passes sudo a custom prompt (-p) and waits for that
+# exact text. sudo-rs wraps it as "[sudo: <prompt>] Password:", so Ansible never
+# recognises the prompt and fails with "Timed out waiting for become success or
+# become password prompt". Ubuntu still ships classic sudo as sudo.ws; use it.
+if command -v sudo.ws &> /dev/null && sudo --version 2>/dev/null | grep -q '^sudo-rs'; then
+    export ANSIBLE_BECOME_EXE=sudo.ws
+fi
+
+# ----------------------------------------------------------------------------
 # Run playbooks
 # ----------------------------------------------------------------------------
-if command -v ansible-playbook &> /dev/null; then
-    if is_macos; then
-        ansible-playbook {{ joinPath .chezmoi.sourceDir "dot_bootstrap/provision-workstation-macos.yml" | quote }} --ask-become-pass
-    elif is_windows; then
-        ansible-playbook {{ joinPath .chezmoi.sourceDir "dot_bootstrap/provision-workstation-wsl.yml" | quote }} --ask-become-pass
-        WIN_SCRIPT="$(wslpath -w {{ joinPath .chezmoi.sourceDir "dot_bootstrap/provision-workstation-windows.ps1" | quote }})"
-        powershell.exe -ExecutionPolicy Bypass -File "$WIN_SCRIPT"
-    else
-        ansible-playbook {{ joinPath .chezmoi.sourceDir "dot_bootstrap/provision-workstation-linux.yml" | quote }} --ask-become-pass
-    fi
+if ! command -v ansible-playbook &> /dev/null; then
+    echo "ansible-playbook not found; run_once_install_ansible.sh should have installed it." >&2
+    exit 1
+fi
+
+if is_macos; then
+    ansible-playbook {{ joinPath .chezmoi.sourceDir "dot_bootstrap/provision-workstation-macos.yml" | quote }} --ask-become-pass
+elif is_windows; then
+    ansible-playbook {{ joinPath .chezmoi.sourceDir "dot_bootstrap/provision-workstation-wsl.yml" | quote }} --ask-become-pass
+    WIN_SCRIPT="$(wslpath -w {{ joinPath .chezmoi.sourceDir "dot_bootstrap/provision-workstation-windows.ps1" | quote }})"
+    powershell.exe -ExecutionPolicy Bypass -File "$WIN_SCRIPT"
+else
+    ansible-playbook {{ joinPath .chezmoi.sourceDir "dot_bootstrap/provision-workstation-linux.yml" | quote }} --ask-become-pass
 fi
