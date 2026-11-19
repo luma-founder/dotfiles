@@ -97,7 +97,7 @@ chezmoi state dump
 chezmoi state delete-bucket --bucket=scriptState && chezmoi apply
 
 # Run Ansible playbook manually
-ansible-playbook ~/.bootstrap/provision-workstation-macos.yml   # macOS
+ansible-playbook ~/.bootstrap/provision-workstation-macos.yml --ask-become-pass  # macOS
 ansible-playbook ~/.bootstrap/provision-workstation-linux.yml --ask-become-pass  # Linux
 
 # List available cheatsheets

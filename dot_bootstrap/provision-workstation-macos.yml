@@ -79,6 +79,11 @@
         name: claude-code
         state: present
 
+    - name: Install DBeaver Community (macOS)
+      community.general.homebrew_cask:
+        name: dbeaver-community
+        state: present
+
     - name: Install Docker Desktop (macOS)
       community.general.homebrew_cask:
         name: docker-desktop
